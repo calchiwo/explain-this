@@ -1,25 +1,26 @@
-from openai import OpenAI
+import requests
 
-client = OpenAI()
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL = "llama3"
 
 
 def generate_explanation(prompt: str) -> str:
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=prompt,
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": MODEL,
+            "prompt": prompt,
+            "stream": False,
+        },
+        timeout=120,
     )
 
-    # Safely extract text from the response
-    output_parts = []
+    response.raise_for_status()
+    data = response.json()
 
-    for item in response.output:
-        if item["type"] == "message":
-            for content in item["content"]:
-                if content["type"] == "output_text":
-                    output_parts.append(content["text"])
+    text = data.get("response", "").strip()
 
-    if not output_parts:
+    if not text:
         raise RuntimeError("LLM returned no text output")
 
-    return "\n".join(output_parts).strip()
-
+    return text
